@@ -2,21 +2,35 @@ package main
 
 import (
 	"fmt"
-	"github.com/akamensky/argparse"
 	"os"
+
+	"github.com/akamensky/argparse"
 )
+
+const OUT_FLAGS = os.O_APPEND | os.O_CREATE | os.O_WRONLY
 
 func main() {
 	// Argument parsing
 	argparser := argparse.NewParser("huffman", "A simple Huffman Encoder/Decoder written for educational purposes.")
 
+
 	// File args
-	inFile := argparser.File("i", "inFile", os.O_RDWR, 0600, &argparse.Options{Required: true, Help: "Required Input File"})
-	outFile := argparser.File("o", "outFile", os.O_RDWR, 0600, &argparse.Options{Required: false, Help: "Output File"})
+	infileOpts := &argparse.Options{Required: true, Help: "Required Input File"}
+	infile := argparser.File("i", "infile", os.O_RDWR, 0600, infileOpts)
+	outfileOpts := &argparse.Options{Required: true, Help: "Required Output File Path"}
+	outfile := argparser.File("o", "outfile", OUT_FLAGS, 0600, outfileOpts)
+	defer outfile.Close()
+	defer infile.Close()
 	
 	// Mode
-	decode := argparser.Flag("d", "decode", &argparse.Options{Required: false, Help: "Set mode to decode"})
-	encode := argparser.Flag("e", "encode",  &argparse.Options{Required: false, Help: "Set mode to encode"})
+	decodeOpts := &argparse.Options{Required: false, Help: "Decode Mode"}
+	decode := argparser.Flag("d", "decode", decodeOpts)
+	encodeOPts := &argparse.Options{Required: false, Help: "Encode Mode"}
+	encode := argparser.Flag("e", "encode", encodeOPts)
+
+	// Concurrency
+	goroutineOpts := &argparse.Options{Required: false, Help: "Maximum Number of Goroutines to use", Default: 4}
+	goroutines := argparser.Int("g", "goroutines", goroutineOpts)
 	
 	// Parse args
 	err := argparser.Parse(os.Args)
@@ -42,6 +56,7 @@ func main() {
 		fmt.Println("Decode Mode")
 	}
 
-	fmt.Println(outFile.Name)
-	fmt.Println(inFile.Name)
+	fmt.Println(*goroutines)
+	fmt.Println((*outfile).Name())
+	fmt.Println((*infile).Name())
 }
