@@ -33,7 +33,7 @@ func (b *threadSafeBs) Push(bit byte) {
 	b.top++
 }
 
-// Pops the top bit from the stack
+// Pop returns the top bit on the stack and pops it in the process
 func (b *threadSafeBs) Pop() bool {
 	b.mutex.Lock()
 	defer b.mutex.Unlock()
@@ -43,21 +43,21 @@ func (b *threadSafeBs) Pop() bool {
 	return x
 }
 
-// Returns the top bit from the stack
+// Peek returns the top bit from the stack
 func (b *threadSafeBs) Peek() bool {
 	b.mutex.RLock()
 	defer b.mutex.RUnlock()
 	return b.vec.Element(b.top - 1) >= 1
 }
 
-// Returns the size of the stack
+// Size returns the size of the stack
 func (b *threadSafeBs) Size() int {
 	b.mutex.RLock()
 	defer b.mutex.RUnlock()
 	return b.top
 }
 
-// Returns a copy of this stack's BitVector
+// Vec returns a copy of this stack's BitVector
 func (b *threadSafeBs) Vec() BitVec {
 	b.mutex.RLock()
 	defer b.mutex.RUnlock()
@@ -67,7 +67,7 @@ func (b *threadSafeBs) Vec() BitVec {
 	}
 }
 
-// Creates a new 8 Bit Bit Stack
+// NewBitStack creates a new 8 Bit Bit Stack
 // capacity: The number of bits to allocate.
 func NewBitStack() *threadSafeBs {
 	return &threadSafeBs {

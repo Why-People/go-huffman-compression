@@ -38,7 +38,7 @@ func (t *threadSafeBv) ClrBit(i int) {
 	t.vec.Set(0, i)
 }
 
-// Gets a bit at the specified index
+// GetBit returns the bit at the specified index
 // i: The index of the bit to get
 func (t *threadSafeBv) GetBit(i int) bool {
 	t.mutex.RLock()
@@ -46,14 +46,14 @@ func (t *threadSafeBv) GetBit(i int) bool {
 	return t.vec.Element(i) >= 1
 }
 
-// Returns the raw byte data from this vector
+// RawData returns the raw byte data from this vector
 func (t *threadSafeBv) RawData() []byte {
 	t.mutex.RLock()
 	defer t.mutex.RUnlock()
 	return t.vec.Bytes()
 }
 
-// Creates a BitVector from data
+// NewVectorFromData creates a BitVector from data
 // data: The orginal data
 func NewVectorFromData(data []byte) *threadSafeBv {
 	return &threadSafeBv{
@@ -62,7 +62,7 @@ func NewVectorFromData(data []byte) *threadSafeBv {
 	}
 }
 
-// Creates a new empty BitVector
+// NewVector creates a new empty BitVector
 // capacity: The number of bits to allocate.
 func NewVector(capacity int) *threadSafeBv {
 	return &threadSafeBv{

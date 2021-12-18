@@ -1,5 +1,7 @@
 package common
 
+const NODE_JOIN_SYMBOL = '$'
+
 // Huffman Tree Node
 
 // The public interface
@@ -9,6 +11,7 @@ type HuffNode interface {
 	Data() NodeData
 	Left() HuffNode
 	Right() HuffNode
+	IsLeaf() bool
 	Join(right HuffNode) HuffNode
 }
 
@@ -37,27 +40,32 @@ func (n *node) SetRight(right HuffNode) {
 	n.right = right
 }
 
-// Returns the Data From the Node
+// Data returns the Data From the Node (symbol and weight)
 func (n *node) Data() NodeData {
 	return n.data
 }
 
-// Returns the left node
+// Left returns the left node
 func (n *node) Left() HuffNode {
 	return n.left
 }
 
-// Returns the right node
+// Right returns the right node
 func (n *node) Right() HuffNode {
 	return n.right
 }
 
-// Joins 2 nodes together
+// IsLeaf returns if the node is a leaf node
+func (n *node) IsLeaf() bool {
+	return n.left == nil && n.right == nil
+}
+
+// Joins returns the joining 2 nodes together
 // right: The node to be joined to the right
 func (n *node) Join(right HuffNode) HuffNode {
 	return &node{
 		data: NodeData{
-			Symbol: '$',
+			Symbol: NODE_JOIN_SYMBOL,
 			Weight: n.data.Weight + right.Data().Weight,
 		},
 		left: n,
@@ -65,7 +73,7 @@ func (n *node) Join(right HuffNode) HuffNode {
 	}
 }
 
-// Creates a New Node
+// NewNode creates a new node
 // symbol: The symbol to be stored in the node
 // weight: The weight of the node
 func NewNode(symbol byte, weight int) HuffNode {

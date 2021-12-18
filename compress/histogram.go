@@ -24,7 +24,7 @@ func (m *threadSafeMap) IncrementWeight(b byte) {
 	m.m[b]++
 }
 
-// Gets the Weight of a value in the histogram
+// GetWeight returns the Weight of a value in the histogram
 // b: the byte to get the weight for
 func (m *threadSafeMap) GetWeight(b byte) int {
 	m.mutex.RLock()
