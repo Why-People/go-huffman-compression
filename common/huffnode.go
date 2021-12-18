@@ -6,6 +6,7 @@ package common
 type HuffNode interface {
 	SetLeft(left *node)
 	SetRight(right *node)
+	Data() nodeData
 	Left() *node
 	Right() *node
 	Join(right HuffNode) *node
@@ -34,6 +35,11 @@ func (n *node) SetLeft(left *node) {
 // right: The right node
 func (n *node) SetRight(right *node) {
 	n.right = right
+}
+
+// Returns the Data From the Node
+func (n *node) Data() nodeData {
+	return n.data
 }
 
 // Returns the left node
