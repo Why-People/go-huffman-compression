@@ -2,7 +2,8 @@ package compress
 
 import (
 	"container/heap"
-	"io/whypeople/huffman/common"
+
+	"io.whypeople/huffman/common"
 )
 
 // The min heap needed to build the Huffman Tree

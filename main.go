@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"os"
 
+	"io.whypeople/huffman/compress"
+
 	"github.com/akamensky/argparse"
 )
 
@@ -51,7 +53,7 @@ func main() {
 	}
 
 	if *encode {
-		fmt.Println("Encode Mode")
+		compress.CompressFile(infile, outfile, *goroutines)
 	} else {
 		fmt.Println("Decode Mode")
 	}

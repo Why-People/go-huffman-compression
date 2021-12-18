@@ -1,7 +1,7 @@
 package compress
 
 import (
-	"io/whypeople/huffman/common"
+	"io.whypeople/huffman/common"
 )
 
 // HistogramToHuffTree builds a Huffman Tree from a histogram and returns the root of the tree
