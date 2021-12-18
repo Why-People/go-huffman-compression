@@ -8,6 +8,6 @@ type HuffHeader struct {
 }
 
 // CreateHeader creates a header
-func CreateHeader(treeSize uint16, originalFileSize uint64) HuffHeader {
-	return HuffHeader{MAGIC_NUMBER, treeSize, originalFileSize}
+func CreateHeader(treeSize uint16, originalFileSize uint64) *HuffHeader {
+	return &HuffHeader{MAGIC_NUMBER, treeSize, originalFileSize}
 }

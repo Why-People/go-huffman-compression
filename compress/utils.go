@@ -1,12 +1,14 @@
 package compress
 
 import (
+	"os"
+
 	"io.whypeople/huffman/common"
 )
 
 // HistogramToHuffTree builds a Huffman Tree from a histogram and returns the root of the tree
-func HistogramToHuffTree(h Histogram) common.HuffNode {
-	heap := buildHuffMinHeap(h)
+func HistogramToHuffTree(histogram map[byte]int) common.HuffNode {
+	heap := buildHuffMinHeap(histogram)
 
 	for heap.Size() > 1 {
 		left := heap.ExtractMin()
@@ -20,12 +22,12 @@ func HistogramToHuffTree(h Histogram) common.HuffNode {
 }
 
 // buildHuffMinHeap builds a Huffman Min Heap from a histogram
-func buildHuffMinHeap(h Histogram) HuffMinHeap {
+func buildHuffMinHeap(h map[byte]int) HuffMinHeap {
 	heap := NewHuffMinHeap()
 
 	// Insert any node that has a weight > 0
 	for i := 0; i < common.ALPHABET_SIZE; i++ {
-		w := h.GetWeight(byte(i))
+		w := h[byte(i)]
 		if w > 0 {
 			node := common.NewNode(byte(i), w)
 			heap.Insert(node)
@@ -54,12 +56,24 @@ func buildHuffCodeTable(n common.HuffNode, code HuffCode, codeTable HuffCodeTabl
 		// Actual symbols are leaf nodes
 		codeTable[n.Data().Symbol] = code.Copy()
 	} else {
+		// Traverse left
 		code.Push(0)
 		buildHuffCodeTable(n.Left(), code, codeTable)
 		code.Pop()
 
+		// Traverse right
 		code.Push(1)
 		buildHuffCodeTable(n.Right(), code, codeTable)
 		code.Pop()
 	}
+}
+
+// GetFileSize returns the size of a file in bytes
+// file: the  pointer to the file
+func GetFileSize(file *os.File) int64 {
+	fi, err := file.Stat()
+	if err != nil {
+		panic(err)
+	}
+	return fi.Size()
 }

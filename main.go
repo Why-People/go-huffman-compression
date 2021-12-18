@@ -9,7 +9,7 @@ import (
 	"github.com/akamensky/argparse"
 )
 
-const OUT_FLAGS = os.O_APPEND | os.O_CREATE | os.O_WRONLY
+const OUT_FLAGS = os.O_CREATE | os.O_WRONLY
 
 func main() {
 	// Argument parsing

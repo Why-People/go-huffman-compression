@@ -2,11 +2,10 @@ package compress
 
 import (
 	"errors"
-	"fmt"
+	// "fmt"
+	"encoding/binary"
 	"io"
 	"os"
-
-	// "sync"
 
 	"io.whypeople/huffman/common"
 )
@@ -36,17 +35,23 @@ func CompressFile(infile *os.File, outfile *os.File, maxGoroutines int) HuffComp
 		compressedFile.err = err
 		return compressedFile
 	}
+
+	// Needed to calcular the tree size
+	uniqueSymbols := len(histogram)
 	
-	for i := 0; i < common.ALPHABET_SIZE; i++ {
-		w := histogram[byte(i)]
-		if w > 0 {
-			fmt.Println(string(rune(i)), w)
-		}
-	}
+	// Build Huffman Tree
+	// huffTreeRoot := HistogramToHuffTree(histogram)
+
+	// Create Header and dump it to the output file
+	treeSize := (3 * uniqueSymbols) - 1;
+	originalFileSize := GetFileSize(infile)
+	compressedFile.header = common.CreateHeader(uint16(treeSize), uint64(originalFileSize))
+	binary.Write(outfile, common.Endianess(), *compressedFile.header)
 
 	return compressedFile
 }
 
+// TODO: Make this more memory efficient (not having each goroutine use a local byte buffer)
 // buildHistogramConcurrentlyFromFile builds a histogram from a file using the specified number of maxGoroutines
 // infile: The file to build the histogram from
 // maxGoroutines: The number of goroutines to use to build the histogram concurrently
