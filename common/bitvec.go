@@ -8,6 +8,7 @@ import (
 
 // Thread Safe Wrapper around a Bit Vector
 
+// The Public Interface
 type BitVec interface {
 	SetBit(i int)
 	ClrBit(i int)
@@ -15,40 +16,57 @@ type BitVec interface {
 	RawData() []byte
 }
 
+// Internal Data Struct
 type threadSafeBv struct {
-	mutex *sync.Mutex
+	mutex *sync.RWMutex
 	vec *bitvector.BitVector
 }
 
+// Sets a bit in the vector to 1
+// i: The index of the bit to set
 func (t *threadSafeBv) SetBit(i int) {
 	t.mutex.Lock()
 	defer t.mutex.Unlock()
 	t.vec.Set(1, i)
 }
 
-func (t *threadSafeBv) GetBit(i int) bool {
-	t.mutex.Lock()
-	defer t.mutex.Unlock()
-	return t.vec.Element(i) >= 1
-}
-
+// Sets a bit in the vector to 0
+// i: The index of the bit to set
 func (t *threadSafeBv) ClrBit(i int) {
 	t.mutex.Lock()
 	defer t.mutex.Unlock()
 	t.vec.Set(0, i)
 }
 
+// Gets a bit at the specified index
+// i: The index of the bit to get
+func (t *threadSafeBv) GetBit(i int) bool {
+	t.mutex.RLock()
+	defer t.mutex.RUnlock()
+	return t.vec.Element(i) >= 1
+}
+
+// Returns the raw byte data from this vector
 func (t *threadSafeBv) RawData() []byte {
-	t.mutex.Lock()
-	defer t.mutex.Unlock()
+	t.mutex.RLock()
+	defer t.mutex.RUnlock()
 	return t.vec.Bytes()
 }
 
-// Creates a new 8 Bit Bit Vector
+// Creates a BitVector from data
+// data: The orginal data
+func NewVectorFromData(data []byte) *threadSafeBv {
+	return &threadSafeBv{
+		mutex: new(sync.RWMutex),
+		vec:   bitvector.NewBitVector(data, len(data)),
+	}
+}
+
+// Creates a new empty BitVector
 // capacity: The number of bits to allocate.
 func NewVector(capacity int) *threadSafeBv {
 	return &threadSafeBv{
-		mutex: new(sync.Mutex),
+		mutex: new(sync.RWMutex),
 		vec:   bitvector.NewBitVector([]byte{}, capacity),
 	}
 }
