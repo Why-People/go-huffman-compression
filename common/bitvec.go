@@ -14,6 +14,7 @@ type BitVec interface {
 	ClrBit(i int)
 	GetBit(i int) bool
 	RawData() []byte
+	Copy() BitVec
 }
 
 // Internal Data Struct
@@ -53,6 +54,16 @@ func (t *threadSafeBv) RawData() []byte {
 	return t.vec.Bytes()
 }
 
+// Copy returns a copy of this vector
+func (t *threadSafeBv) Copy() BitVec {
+	t.mutex.RLock()
+	defer t.mutex.RUnlock()
+	return &threadSafeBv{
+		mutex: new(sync.RWMutex),
+		vec:   bitvector.NewBitVector(t.vec.Bytes(), t.vec.Length()),
+	}
+}
+
 // NewVectorFromData creates a BitVector from data
 // data: The orginal data
 func NewVectorFromData(data []byte) *threadSafeBv {
@@ -64,7 +75,7 @@ func NewVectorFromData(data []byte) *threadSafeBv {
 
 // NewVector creates a new empty BitVector
 // capacity: The number of bits to allocate.
-func NewVector(capacity int) *threadSafeBv {
+func NewVector(capacity int) BitVec {
 	return &threadSafeBv{
 		mutex: new(sync.RWMutex),
 		vec:   bitvector.NewBitVector([]byte{}, capacity),

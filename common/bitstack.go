@@ -15,6 +15,7 @@ type BitStack interface {
 	Peek() bool
 	Size() int
 	Vec() BitVec
+	Copy() BitStack
 }
 
 // Internal Struct
@@ -57,7 +58,7 @@ func (b *threadSafeBs) Size() int {
 	return b.top
 }
 
-// Vec returns a copy of this stack's BitVector
+// Vec returns a copy of this stack's Bit Vector
 func (b *threadSafeBs) Vec() BitVec {
 	b.mutex.RLock()
 	defer b.mutex.RUnlock()
@@ -67,9 +68,20 @@ func (b *threadSafeBs) Vec() BitVec {
 	}
 }
 
-// NewBitStack creates a new 8 Bit Bit Stack
+// Copy returns a copy of this stack
+func (b *threadSafeBs) Copy() BitStack {
+	b.mutex.RLock()
+	defer b.mutex.RUnlock()
+	return &threadSafeBs {
+		mutex: new(sync.RWMutex),
+		vec:   bitvector.NewBitVector(b.vec.Bytes(), b.vec.Length()),
+		top:   b.top,
+	}
+}
+
+// NewBitStack creates a new Bit Stack
 // capacity: The number of bits to allocate.
-func NewBitStack() *threadSafeBs {
+func NewBitStack() BitStack {
 	return &threadSafeBs {
 		mutex: new(sync.RWMutex),
 		vec:   bitvector.NewBitVector([]byte{}, 1),
