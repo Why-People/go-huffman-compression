@@ -1,8 +1,6 @@
 package compress
 
 import (
-	"fmt"
-
 	"io.whypeople/huffman/common"
 )
 
@@ -25,13 +23,9 @@ func HistogramToHuffTree(histogram map[byte]int) common.HuffNode {
 func buildHuffMinHeap(h map[byte]int) HuffMinHeap {
 	heap := NewHuffMinHeap()
 
-	// Insert any node that has a weight > 0
-	for i := 0; i < common.ALPHABET_SIZE; i++ {
-		w := h[byte(i)]
-		if w > 0 {
-			node := common.NewNode(byte(i), w)
-			heap.Insert(node)
-		}
+	for symbol, weight := range h {
+		node := common.NewNode(symbol, weight)
+		heap.Insert(node)
 	}
 
 	return heap
@@ -54,7 +48,7 @@ func HuffTreeToCodeTable(root common.HuffNode) HuffCodeTable {
 func buildHuffCodeTable(n common.HuffNode, code HuffCode, codeTable HuffCodeTable) {
 	if n.IsLeaf() {
 		// Actual symbols are leaf nodes
-		fmt.Println(string(n.Data().Symbol), code.Log())
+
 		codeTable[n.Data().Symbol] = code.Copy()
 	} else {
 		// Traverse left
