@@ -1,12 +1,6 @@
 package common
 
-import (
-	"sync"
-
-	"github.com/dropbox/godropbox/container/bitvector"
-)
-
-// A thread safe wrapper around a Bit Vector in the form of a stack
+import "bytes"
 
 // Public Interface
 type BitStack interface {
@@ -16,74 +10,76 @@ type BitStack interface {
 	Size() int
 	Vec() BitVec
 	Copy() BitStack
+	Log() string
 }
 
-// Internal Struct
-type threadSafeBs struct {
-	mutex *sync.RWMutex
-	vec *bitvector.BitVector
+// The internal struct
+type bs8 struct {
+	vec BitVec
 	top int
 }
 
 // Pushes a bit onto the stack
 // bit: The bit to push onto the stack
-func (b *threadSafeBs) Push(bit byte) {
-	b.mutex.Lock()
-	defer b.mutex.Unlock()
-	b.vec.Append(bit)
+func (b *bs8) Push(bit byte) {
+	if bit == 1 {
+		b.vec.SetBit(b.top)
+	} else {
+		b.vec.ClrBit(b.top)
+	}
 	b.top++
 }
 
 // Pop returns the top bit on the stack and pops it in the process
-func (b *threadSafeBs) Pop() bool {
-	b.mutex.Lock()
-	defer b.mutex.Unlock()
+func (b *bs8) Pop() bool {
 	b.top--
-	x := b.vec.Element(b.top) >= 1
-	b.vec.Set(0, b.top)
-	return x
+	return b.vec.GetBit(b.top)
 }
 
-// Peek returns the top bit from the stack
-func (b *threadSafeBs) Peek() bool {
-	b.mutex.RLock()
-	defer b.mutex.RUnlock()
-	return b.vec.Element(b.top - 1) >= 1
+// Peek returns the top bit from the stack without popping it
+func (b *bs8) Peek() bool {
+	return b.vec.GetBit(b.top - 1)
+}
+
+// Copy returns a copy of this stack
+func (b *bs8) Copy() BitStack {
+	vec := NewBitStack(b.vec.Capacity())
+	for i := 0; i < b.top; i++ {
+		if b.vec.GetBit(i) {
+			vec.Push(1)
+		} else {
+			vec.Push(0)
+		}
+	}
+	return vec
 }
 
 // Size returns the size of the stack
-func (b *threadSafeBs) Size() int {
-	b.mutex.RLock()
-	defer b.mutex.RUnlock()
+func (b *bs8) Size() int {
 	return b.top
 }
 
 // Vec returns a copy of this stack's Bit Vector
-func (b *threadSafeBs) Vec() BitVec {
-	b.mutex.RLock()
-	defer b.mutex.RUnlock()
-	return &threadSafeBv {
-		mutex: new(sync.RWMutex),
-		vec:   b.vec,
-	}
+func (b *bs8) Vec() BitVec {
+	return b.vec
 }
 
-// Copy returns a copy of this stack
-func (b *threadSafeBs) Copy() BitStack {
-	b.mutex.RLock()
-	defer b.mutex.RUnlock()
-	return &threadSafeBs {
-		mutex: new(sync.RWMutex),
-		vec:   bitvector.NewBitVector(b.vec.Bytes(), b.vec.Length()),
-		top:   b.top,
+// Log returns a string representation of the stack suitable for logging
+func (b *bs8) Log() string {
+	buffer := new(bytes.Buffer)
+	for i := 0; i < b.top; i++ {
+		bit := b.vec.GetBit(i)
+		if bit {
+			buffer.WriteString("1")
+		} else {
+			buffer.WriteString("0")
+		}
 	}
+	return buffer.String()
 }
 
-// NewBitStack creates a new Bit Stack
-// capacity: The number of bits to allocate.
-func NewBitStack() BitStack {
-	return &threadSafeBs {
-		mutex: new(sync.RWMutex),
-		vec:   bitvector.NewBitVector([]byte{}, 1),
-	}
+// NewBitStack returns a new BitStack with the given size
+// size: The size of the stack in bits
+func NewBitStack(size uint64) BitStack {
+	return &bs8{vec: NewVector(size), top: 0}
 }

@@ -1,6 +1,7 @@
 package compress
 
 import (
+	"fmt"
 	"os"
 
 	"io.whypeople/huffman/common"
@@ -45,7 +46,7 @@ type HuffCodeTable map[byte]HuffCode
 // root: The root of the Huffman Tree
 func HuffTreeToCodeTable(root common.HuffNode) HuffCodeTable {
 	codeTable := make(HuffCodeTable)
-	huffcode := common.NewBitStack()
+	huffcode := common.NewBitStack(common.MAX_CODE_SIZE)
 	buildHuffCodeTable(root, huffcode, codeTable)
 	return codeTable
 }
@@ -54,6 +55,7 @@ func HuffTreeToCodeTable(root common.HuffNode) HuffCodeTable {
 func buildHuffCodeTable(n common.HuffNode, code HuffCode, codeTable HuffCodeTable) {
 	if n.IsLeaf() {
 		// Actual symbols are leaf nodes
+		fmt.Println(string(n.Data().Symbol), code.Log())
 		codeTable[n.Data().Symbol] = code.Copy()
 	} else {
 		// Traverse left

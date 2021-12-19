@@ -1,9 +1,9 @@
 package compress
 
 import (
-	"errors"
-	// "fmt"
 	"encoding/binary"
+	"errors"
+	"fmt"
 	"io"
 	"os"
 
@@ -35,20 +35,39 @@ func CompressFile(infile *os.File, outfile *os.File, maxGoroutines int) HuffComp
 		compressedFile.err = err
 		return compressedFile
 	}
-
-	// Needed to calcular the tree size
-	uniqueSymbols := len(histogram)
 	
 	// Build Huffman Tree
-	// huffTreeRoot := HistogramToHuffTree(histogram)
+	huffTreeRoot := HistogramToHuffTree(histogram)
 
 	// Create Header and dump it to the output file
-	treeSize := (3 * uniqueSymbols) - 1;
 	originalFileSize := GetFileSize(infile)
-	compressedFile.header = common.CreateHeader(uint16(treeSize), uint64(originalFileSize))
-	binary.Write(outfile, common.Endianess(), *compressedFile.header)
+	compressedFile.header = writeFileHeader(outfile, len(histogram), originalFileSize)
+
+	// If the root is null, that means the infile must've been empty
+	if huffTreeRoot == nil {
+		return compressedFile
+	}
+
+	// Assign codes to each leaf (the nodes that represent bytes in infile) in the huffman tree
+	huffCodeTable := HuffTreeToCodeTable(huffTreeRoot)
+
+	for k, v := range huffCodeTable {
+		fmt.Printf("%v: %v, Size: %v\n", string(k), v.Log(), v.Size())
+	}
+
 
 	return compressedFile
+}
+
+// writeFileHeader writes the compression header to the output file and returns the header struct
+// outfile: the output file to be compressed
+// uniqueSymbols: the number of unique symbols in the orignal file
+// originalFileSize: the size of the original file
+func writeFileHeader(outfile *os.File, uniqueSymbolsFromIn int, originalFileSize int64) *common.HuffHeader {
+	treeSize := (3 * uniqueSymbolsFromIn) - 1;
+	header := common.CreateHeader(uint16(treeSize), uint64(originalFileSize))
+	binary.Write(outfile, common.Endianess(), *header)
+	return header
 }
 
 // TODO: Make this more memory efficient (not having each goroutine use a local byte buffer)
