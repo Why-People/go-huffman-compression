@@ -2,7 +2,6 @@ package compress
 
 import (
 	"fmt"
-	"os"
 
 	"io.whypeople/huffman/common"
 )
@@ -70,12 +69,19 @@ func buildHuffCodeTable(n common.HuffNode, code HuffCode, codeTable HuffCodeTabl
 	}
 }
 
-// GetFileSize returns the size of a file in bytes
-// file: the  pointer to the file
-func GetFileSize(file *os.File) int64 {
-	fi, err := file.Stat()
-	if err != nil {
-		panic(err)
+// createTreeDump creates a byte array that represents the huffman tree
+func CreateTreeDump(root common.HuffNode) []byte {
+	dump := make([]byte, common.MAX_TREE_SIZE)
+	if root == nil {
+		return dump
 	}
-	return fi.Size()
+
+	if root.IsLeaf() {
+		return []byte { 'L', root.Data().Symbol }
+	}
+
+	dump = append(dump, CreateTreeDump(root.Left())...)
+	dump = append(dump, CreateTreeDump(root.Right())...)
+	dump = append(dump, 'I')
+	return dump
 }

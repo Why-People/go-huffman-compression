@@ -40,7 +40,7 @@ func CompressFile(infile *os.File, outfile *os.File, maxGoroutines int) HuffComp
 	huffTreeRoot := HistogramToHuffTree(histogram)
 
 	// Create Header and dump it to the output file
-	originalFileSize := GetFileSize(infile)
+	originalFileSize := common.GetFileSize(infile)
 	compressedFile.header = writeFileHeader(outfile, len(histogram), originalFileSize)
 
 	// If the root is null, that means the infile must've been empty
@@ -55,6 +55,9 @@ func CompressFile(infile *os.File, outfile *os.File, maxGoroutines int) HuffComp
 		fmt.Printf("%v: %v, Size: %v\n", string(k), v.Log(), v.Size())
 	}
 
+	// Dump the tree to the outfile
+	treeDump := CreateTreeDump(huffTreeRoot)
+	outfile.Write(treeDump)
 
 	return compressedFile
 }

@@ -2,6 +2,7 @@ package common
 
 import (
 	"encoding/binary"
+	"os"
 	"unsafe"
 )
 
@@ -13,4 +14,14 @@ func Endianess() binary.ByteOrder {
 	} else {
 		return binary.BigEndian
 	}
+}
+
+// GetFileSize returns the size of a file in bytes
+// file: the  pointer to the file
+func GetFileSize(file *os.File) int64 {
+	fi, err := file.Stat()
+	if err != nil {
+		panic(err)
+	}
+	return fi.Size()
 }
