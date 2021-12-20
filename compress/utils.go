@@ -48,7 +48,6 @@ func HuffTreeToCodeTable(root common.HuffNode) HuffCodeTable {
 func buildHuffCodeTable(n common.HuffNode, code HuffCode, codeTable HuffCodeTable) {
 	if n.IsLeaf() {
 		// Actual symbols are leaf nodes
-
 		codeTable[n.Data().Symbol] = code.Copy()
 	} else {
 		// Traverse left
@@ -63,9 +62,9 @@ func buildHuffCodeTable(n common.HuffNode, code HuffCode, codeTable HuffCodeTabl
 	}
 }
 
-// createTreeDump creates a byte array that represents the huffman tree
+// CreateTreeDump creates a byte array that represents the huffman tree
 func CreateTreeDump(root common.HuffNode) []byte {
-	dump := make([]byte, common.MAX_TREE_SIZE)
+	dump := make([]byte, 0)
 	if root == nil {
 		return dump
 	}

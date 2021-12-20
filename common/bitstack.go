@@ -11,6 +11,7 @@ type BitStack interface {
 	Vec() BitVec
 	Copy() BitStack
 	Log() string
+	Reset()
 }
 
 // The internal struct
@@ -62,6 +63,12 @@ func (b *bs8) Size() int {
 // Vec returns a copy of this stack's Bit Vector
 func (b *bs8) Vec() BitVec {
 	return b.vec
+}
+
+// Reset resets the entire stack
+func (b *bs8) Reset() {
+	b.top = 0
+	b.vec = NewVector(b.vec.Capacity())
 }
 
 // Log returns a string representation of the stack suitable for logging
