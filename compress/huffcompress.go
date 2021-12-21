@@ -11,30 +11,20 @@ import (
 	"io.whypeople/huffman/common"
 )
 
-// Return type for compressed file
-type HuffCompressedFile struct {
-	File *os.File
-	header *common.HuffHeader
-	err error
-}
-
 // CompressFile returns a data type with information about the compressed file
 // infile: The file to be compressed
 // outfile: The file to write the compressed data to
-func CompressFile(infile *os.File, outfile *os.File, maxGoroutines int) HuffCompressedFile {
-	compressedFile := HuffCompressedFile{outfile, nil, nil}
+func CompressFile(infile *os.File, outfile *os.File, maxGoroutines int) (*os.File, error) {
 
 	// Make sure file pointers are valid
 	if infile == nil || outfile == nil {
-		compressedFile.err = errors.New("infile and outfile cannot be nil")
-		return compressedFile
+		return nil, errors.New("infile and outfile cannot be nil")
 	}
 
 	// Build Histogram
 	histogram, err := buildHistogram(infile, maxGoroutines)
 	if err != nil {
-		compressedFile.err = err
-		return compressedFile
+		return nil, err
 	}
 	
 	// Build Huffman Tree
@@ -42,11 +32,11 @@ func CompressFile(infile *os.File, outfile *os.File, maxGoroutines int) HuffComp
 
 	// Create Header and dump it to the output file
 	originalFileSize := common.GetFileSize(infile)
-	compressedFile.header = writeFileHeader(outfile, len(histogram), originalFileSize)
+	writeFileHeader(outfile, len(histogram), originalFileSize)
 
 	// If the root is null, that means the infile must've been empty
 	if huffTreeRoot == nil {
-		return compressedFile
+		return outfile, nil
 	}
 
 	// Assign codes to each leaf (the nodes that represent bytes in infile) in the huffman tree
@@ -58,13 +48,7 @@ func CompressFile(infile *os.File, outfile *os.File, maxGoroutines int) HuffComp
 
 	// Perform compression
 	infile.Seek(0, 0)
-	compressedFi, err := compress(infile, outfile, maxGoroutines, huffCodeTable)
-	if err != nil {
-		compressedFile.err = err
-		return compressedFile
-	}
-	compressedFile.File = compressedFi
-	return compressedFile
+	return compress(infile, outfile, maxGoroutines, huffCodeTable)
 }
 
 // A data struct that will be used to help keep track of the order of compressed data

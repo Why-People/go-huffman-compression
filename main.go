@@ -53,14 +53,24 @@ func main() {
 		return
 	}
 
+	// Handle concurrency args
+	if *goroutines < 1 {
+		fmt.Println(argparser.Usage("Must specify at least 1 goroutine"))
+		return
+	}
+
 	if *encode {
-		data := compress.CompressFile(infile, outfile, *goroutines)
-		fmt.Println("Compressed File:", common.GetFileSize(data.File))
+		fi, err := compress.CompressFile(infile, outfile, *goroutines)
+		if err != nil {
+			panic(err.Error())
+		}
+		inSize := common.GetFileSize(infile)
+		outSize := common.GetFileSize(fi)
+		fmt.Println("Uncompressed File Size:", inSize)
+		fmt.Println("Compressed file size:", outSize)
+		fmt.Printf("Compression Ratio: %3.2v\n", float64(inSize) / float64(outSize))
+		fmt.Printf("Space Saving: %3.4v%%\n", (float64(inSize - outSize) / float64(inSize)) * 100.0)
 	} else {
 		fmt.Println("Decode Mode")
 	}
-
-	fmt.Println(*goroutines)
-	fmt.Println((*outfile).Name())
-	fmt.Println((*infile).Name())
 }
