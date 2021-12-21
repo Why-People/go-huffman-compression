@@ -79,7 +79,7 @@ func compress(infile *os.File, outfile *os.File, maxGoroutines int, codeTable Hu
 	// The job each go routine will do is to read a block from the file and compress it
 	compressJob := func() {
 		buf := make([]byte, common.READ_BLOCK_SIZE)
-		compressedBuffer := common.NewBitStack(common.READ_BLOCK_SIZE * 8) // 8 bits per byte
+		compressedBuffer := common.NewBitStack(common.MAX_BIT_BUFFER_SIZE)
 		for {
 			// Read a block from the file
 			nbytes, err := infile.Read(buf)
@@ -128,7 +128,7 @@ func compress(infile *os.File, outfile *os.File, maxGoroutines int, codeTable Hu
 		return nil, err
 	default:
 		// Buffer used for merging compressed data blocks together
-		mergedOutBuffer := common.NewBitStack(common.READ_BLOCK_SIZE * 8)
+		mergedOutBuffer := common.NewBitStack(common.MAX_BIT_BUFFER_SIZE)
 		for i := 0; i < totalReadsNeeded; i++ {
 			currBlock := blockStore[i]
 
@@ -158,7 +158,7 @@ func compress(infile *os.File, outfile *os.File, maxGoroutines int, codeTable Hu
 				}
 				
 				// Write the data in the mergedOutBuffer to the output file when it fills up
-				if mergedOutBuffer.Size() == common.READ_BLOCK_SIZE * 8 {
+				if mergedOutBuffer.Size() == common.MAX_BIT_BUFFER_SIZE {
 					// Write the buffer to the output file
 					outfile.Write(mergedOutBuffer.Vec().RawData())
 					mergedOutBuffer.Reset()

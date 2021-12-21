@@ -54,8 +54,8 @@ func (bv *bv8) Copy() BitVec {
 // NewVectorFromData creates a BitVector from data
 // data: The orginal data
 // cap: The capacity of the vector
-func NewVectorFromData(data []byte, cap uint64) BitVec {
-	return &bv8{data: data, cap: cap}
+func NewVectorFromData(data []byte) BitVec {
+	return &bv8{data: data, cap: uint64(len(data) * BITS)}
 }
 
 // NewVector creates a BitVector with the specified capacity

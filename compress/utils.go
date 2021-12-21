@@ -70,11 +70,11 @@ func CreateTreeDump(root common.HuffNode) []byte {
 	}
 
 	if root.IsLeaf() {
-		return []byte { 'L', root.Data().Symbol }
+		return []byte{common.LEAF_DUMP_CHAR, root.Data().Symbol}
 	}
 
 	dump = append(dump, CreateTreeDump(root.Left())...)
 	dump = append(dump, CreateTreeDump(root.Right())...)
-	dump = append(dump, 'I')
+	dump = append(dump, common.INTERNAL_DUMP_CHAR)
 	return dump
 }

@@ -6,6 +6,7 @@ import (
 
 	"io.whypeople/huffman/common"
 	"io.whypeople/huffman/compress"
+	"io.whypeople/huffman/decompress"
 
 	"github.com/akamensky/argparse"
 )
@@ -71,6 +72,15 @@ func main() {
 		fmt.Printf("Compression Ratio: %3.2v\n", float64(inSize) / float64(outSize))
 		fmt.Printf("Space Saving: %3.4v%%\n", (float64(inSize - outSize) / float64(inSize)) * 100.0)
 	} else {
-		fmt.Println("Decode Mode")
+		fi, err := decompress.DecompressFile(infile, outfile, *goroutines)
+		if err != nil {
+			panic(err.Error())
+		}
+		inSize := common.GetFileSize(infile)
+		outSize := common.GetFileSize(fi)
+		fmt.Println("Uncompressed File Size:", inSize)
+		fmt.Println("Compressed file size:", outSize)
+		fmt.Printf("Compression Ratio: %3.2v\n", float64(inSize) / float64(outSize))
+		fmt.Printf("Space Saving: %3.4v%%\n", (float64(inSize - outSize) / float64(inSize)) * 100.0)
 	}
 }

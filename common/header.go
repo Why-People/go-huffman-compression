@@ -2,9 +2,9 @@ package common
 
 // The header for compressed files
 type HuffHeader struct {
-	magicNumber      uint32
-	treeSize         uint32
-	originalFileSize int64
+	MagicNumber      uint32
+	TreeSize         uint32
+	OriginalFileSize int64
 }
 
 // CreateHeader creates a header
