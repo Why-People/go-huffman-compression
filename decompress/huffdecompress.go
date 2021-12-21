@@ -40,6 +40,7 @@ func DecompressFile(infile *os.File, outfile *os.File, maxGoroutines int) (*os.F
 // infile: The file to be decompressed
 // outfile: The file to write the decompressed data to
 // maxGoroutines: The maximum number of goroutines to use
+// header: The header of the file to be decompressed
 // treeRoot: The root of the huffman tree
 func decompress(infile *os.File, outfile *os.File, maxGoroutines int, header common.HuffHeader, treeRoot common.HuffNode) (*os.File, error) {
 	var bitBuf common.BitVec
@@ -107,6 +108,6 @@ func decompress(infile *os.File, outfile *os.File, maxGoroutines int, header com
 func readFileHeader(infile *os.File) common.HuffHeader {
 	// Read the header
 	header := common.HuffHeader{}
-  binary.Read(infile, common.Endianess(), &header)
+	binary.Read(infile, common.Endianess(), &header)
 	return header
 }
