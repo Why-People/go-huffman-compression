@@ -13,6 +13,15 @@ import (
 
 const OUT_FLAGS = os.O_CREATE | os.O_WRONLY
 
+func logStats(infile *os.File, outfile *os.File) {
+	inSize := common.GetFileSize(infile)
+	outSize := common.GetFileSize(outfile)
+	fmt.Println("Uncompressed File Size:", inSize)
+	fmt.Println("Compressed file size:", outSize)
+	fmt.Printf("Compression Ratio: %3.2v\n", float64(inSize) / float64(outSize))
+	fmt.Printf("Space Saving: %3.4v%%\n", (float64(inSize - outSize) / float64(inSize)) * 100.0)
+}
+
 func main() {
 	// Argument parsing
 	argparser := argparse.NewParser("huffman", "A simple Huffman Encoder/Decoder written for educational purposes.")
@@ -60,27 +69,18 @@ func main() {
 		return
 	}
 
+	// compress/decompress
 	if *encode {
 		fi, err := compress.CompressFile(infile, outfile, *goroutines)
 		if err != nil {
 			panic(err.Error())
 		}
-		inSize := common.GetFileSize(infile)
-		outSize := common.GetFileSize(fi)
-		fmt.Println("Uncompressed File Size:", inSize)
-		fmt.Println("Compressed file size:", outSize)
-		fmt.Printf("Compression Ratio: %3.2v\n", float64(inSize) / float64(outSize))
-		fmt.Printf("Space Saving: %3.4v%%\n", (float64(inSize - outSize) / float64(inSize)) * 100.0)
+		logStats(infile, fi)
 	} else {
 		fi, err := decompress.DecompressFile(infile, outfile, *goroutines)
 		if err != nil {
 			panic(err.Error())
 		}
-		inSize := common.GetFileSize(infile)
-		outSize := common.GetFileSize(fi)
-		fmt.Println("Uncompressed File Size:", inSize)
-		fmt.Println("Compressed file size:", outSize)
-		fmt.Printf("Compression Ratio: %3.2v\n", float64(inSize) / float64(outSize))
-		fmt.Printf("Space Saving: %3.4v%%\n", (float64(inSize - outSize) / float64(inSize)) * 100.0)
+		logStats(infile, fi)
 	}
 }

@@ -45,8 +45,8 @@ func DecompressFile(infile *os.File, outfile *os.File, maxGoroutines int) (*os.F
 func decompress(infile *os.File, outfile *os.File, maxGoroutines int, header common.HuffHeader, treeRoot common.HuffNode) (*os.File, error) {
 	var bitBuf common.BitVec
 
-	readBuf := make([]byte, common.READ_BLOCK_SIZE)
-	outBuf := make([]byte, common.READ_BLOCK_SIZE)
+	readBuf := make([]byte, common.MAX_IO_BLOCK_SIZE)
+	outBuf := make([]byte, common.MAX_IO_BLOCK_SIZE)
 	symbolsDecoded := int64(0)
 	navNode := treeRoot
 	bitBufPtr := -1
@@ -77,16 +77,16 @@ func decompress(infile *os.File, outfile *os.File, maxGoroutines int, header com
 		}
 
 		// Write the symbol
-		outBuf[symbolsDecoded % common.READ_BLOCK_SIZE] = navNode.Data().Symbol
+		outBuf[symbolsDecoded % common.MAX_IO_BLOCK_SIZE] = navNode.Data().Symbol
 
 		// Write the outbuffer if we have filled it
-		if symbolsDecoded % common.READ_BLOCK_SIZE == common.READ_BLOCK_SIZE - 1 {
+		if symbolsDecoded % common.MAX_IO_BLOCK_SIZE == common.MAX_IO_BLOCK_SIZE - 1 {
 			_, err := outfile.Write(outBuf)
 			if err != nil {
 				return nil, err
 			}
 			// Reset outBuf
-			outBuf = make([]byte, common.READ_BLOCK_SIZE)
+			outBuf = make([]byte, common.MAX_IO_BLOCK_SIZE)
 		}
 
 		// Reset the navigation node
@@ -95,7 +95,7 @@ func decompress(infile *os.File, outfile *os.File, maxGoroutines int, header com
 	}
 
 	// Write the remaining data
-	_, err := outfile.Write(outBuf[:symbolsDecoded % common.READ_BLOCK_SIZE])
+	_, err := outfile.Write(outBuf[:symbolsDecoded % common.MAX_IO_BLOCK_SIZE])
 	if err != nil {
 		return nil, err
 	}

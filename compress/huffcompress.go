@@ -54,7 +54,7 @@ func CompressFile(infile *os.File, outfile *os.File, maxGoroutines int) (*os.Fil
 // A data struct that will be used to help keep track of the order of compressed data
 type compressedBlock struct {
 	data  common.BitStack // A buffer that's easy to write to bit by bit
-	order int // The read order of the block
+	order int 						// The read order of the block
 }
 
 // compress takes a file and writes the compressed version to the output file
@@ -62,23 +62,22 @@ type compressedBlock struct {
 // outfile: the file to write the compressed data to
 // codeTable: the code table to use for compression
 func compress(infile *os.File, outfile *os.File, maxGoroutines int, codeTable HuffCodeTable) (*os.File, error) {
-	// Create a channel to receive the compressed data from the goroutines
 	compressedDataChan := make(chan compressedBlock)
-
-	// Create a channel to receive errors from the goroutines
 	errChan := make(chan error)
+	defer close(compressedDataChan)
+	defer close(errChan)
 
 	// The source of truth in regards to read/write order
 	orderVal := int32(-1)
 
 	// A datastore to temporarily store the compressed data when it is finsihed being
 	// processed by an eager goroutine
-	totalReadsNeeded := int(math.Ceil(float64(common.GetFileSize(infile)) / float64(common.READ_BLOCK_SIZE)))
+	totalReadsNeeded := int(math.Ceil(float64(common.GetFileSize(infile)) / float64(common.MAX_IO_BLOCK_SIZE)))
 	blockStore := make([]common.BitStack, totalReadsNeeded)
 
 	// The job each go routine will do is to read a block from the file and compress it
 	compressJob := func() {
-		buf := make([]byte, common.READ_BLOCK_SIZE)
+		buf := make([]byte, common.MAX_IO_BLOCK_SIZE)
 		compressedBuffer := common.NewBitStack(common.MAX_BIT_BUFFER_SIZE)
 		for {
 			// Read a block from the file
@@ -124,7 +123,7 @@ func compress(infile *os.File, outfile *os.File, maxGoroutines int, codeTable Hu
 
 	// Handle goroutine channels
 	select {
-	case err := <-errChan:
+	case err := <- errChan:
 		return nil, err
 	default:
 		// Buffer used for merging compressed data blocks together
@@ -135,7 +134,7 @@ func compress(infile *os.File, outfile *os.File, maxGoroutines int, codeTable Hu
 			// Wait for the correct block to be read if blockStore[i] is nil
 			if currBlock == nil {
 				// Wait for a block to be sent down the channel
-				block := <-compressedDataChan
+				block := <- compressedDataChan
 				// Incorrect block order, simply reiterate this loop until we recieve the correct block
 				if i != block.order {
 					i--
@@ -160,7 +159,10 @@ func compress(infile *os.File, outfile *os.File, maxGoroutines int, codeTable Hu
 				// Write the data in the mergedOutBuffer to the output file when it fills up
 				if mergedOutBuffer.Size() == common.MAX_BIT_BUFFER_SIZE {
 					// Write the buffer to the output file
-					outfile.Write(mergedOutBuffer.Vec().RawData())
+					_, err := outfile.Write(mergedOutBuffer.Vec().RawData())
+					if err != nil {	
+						return nil, err
+					}
 					mergedOutBuffer.Reset()
 				}
 			}
@@ -194,10 +196,12 @@ func writeFileHeader(outfile *os.File, uniqueSymbolsFromIn int, originalFileSize
 func buildHistogram(infile *os.File, maxGoroutines int) (map[byte]int, error) {
 	histogramChan := make(chan map[byte]int)
 	errChan := make(chan error)
+	defer close(histogramChan)
+	defer close(errChan)
 
 	// The job each go routine will do is to read a block from the file and increment their own histogram
 	countBytesJob := func() {
-		buf := make([]byte, common.READ_BLOCK_SIZE)
+		buf := make([]byte, common.MAX_IO_BLOCK_SIZE)
 		localHist := make(map[byte]int)
 		for {
 			n, err := infile.Read(buf)
@@ -231,7 +235,7 @@ func buildHistogram(infile *os.File, maxGoroutines int) (map[byte]int, error) {
 		// Recieve all the local histograms from the goroutines and compile them into 1 histogram
 		histogram := make(map[byte]int)
 		for i := 0; i < maxGoroutines; i++ {
-			hist := <-histogramChan
+			hist := <- histogramChan
 			for k, v := range hist {
 				histogram[k] += v
 			}
