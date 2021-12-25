@@ -135,7 +135,10 @@ func compress(infile *os.File, outfile *os.File, maxGoroutines int, codeTable Hu
 			for idx < data.Size() {
 				if mergedOutBuffer.Size() >= common.MAX_BIT_BUFFER_SIZE {
 					// Write the data to the output file
-					outfile.Write(mergedOutBuffer.Vec().RawData())
+					_, err := outfile.Write(mergedOutBuffer.Vec().RawData())
+					if err != nil {
+						return nil, err
+					}
 					mergedOutBuffer.Reset()
 				}
 				_, idx = mergedOutBuffer.Append(data, idx)
