@@ -12,6 +12,7 @@ type BitStack interface {
 	Copy() BitStack
 	Log() string
 	Reset()
+	Append(other BitStack, start int) (BitStack, int)
 }
 
 // The internal struct
@@ -53,6 +54,25 @@ func (b *bs8) Copy() BitStack {
 		}
 	}
 	return vec
+}
+
+// Append appends another bitstack to the current stack (returns other and the index of how many bits were appended)
+// other: The other bitstack to append
+// start: The index to start appending from
+func  (b *bs8) Append(other BitStack, start int) (BitStack, int) {
+	vec := other.Vec()
+	for i := start; i < other.Size(); i++ {
+		// If the current stack fills up, return the other stack with the next index of the other stack
+		if uint64(b.top) == b.Vec().Capacity() {
+			return other, i
+		}
+		if vec.GetBit(i) {
+			b.Push(1)
+		} else {
+			b.Push(0)
+		}
+	}
+	return other, other.Size()
 }
 
 // Size returns the size of the stack

@@ -62,121 +62,94 @@ type compressedBlock struct {
 // outfile: the file to write the compressed data to
 // codeTable: the code table to use for compression
 func compress(infile *os.File, outfile *os.File, maxGoroutines int, codeTable HuffCodeTable) (*os.File, error) {
-	compressedDataChan := make(chan compressedBlock)
-	errChan := make(chan error)
-	defer close(compressedDataChan)
-	defer close(errChan)
-
-	// The source of truth in regards to read/write order
-	orderVal := int32(-1)
-
-	// A datastore to temporarily store the compressed data when it is finsihed being
-	// processed by an eager goroutine
 	totalReadsNeeded := int(math.Ceil(float64(common.GetFileSize(infile)) / float64(common.MAX_IO_BLOCK_SIZE)))
-	blockStore := make([]common.BitStack, totalReadsNeeded)
 
-	// The job each go routine will do is to read a block from the file and compress it
+	// Create concurrent channels to handle errors and manage the order of compressed data
+	compressedChannels := make([]chan common.BitStack, 0, totalReadsNeeded)
+	errorChannel :=  make(chan error)
+	defer close(errorChannel)
+	defer func() {
+		for _, c := range compressedChannels {
+			close(c)
+		}
+	}()
+
+	// This value will keep track of the read/write order of the compressed data
+	order := int32(-1)
+
+	// Each goroutine will read from the file and compress it
 	compressJob := func() {
 		buf := make([]byte, common.MAX_IO_BLOCK_SIZE)
 		compressedBuffer := common.NewBitStack(common.MAX_BIT_BUFFER_SIZE)
+
+		// Read and compress data while not at the end of the file
 		for {
-			// Read a block from the file
-			nbytes, err := infile.Read(buf)
+			nbytes, err := infile.Read(buf);
 			if err == io.EOF {
 				break
 			}
+			// Check for any IO Errors
 			if err != nil {
-				// IO Error, send it down the error channel
-				errChan <- err
+				errorChannel <- err
 				return
 			}
 
 			// Update read order val
-			readOrder := atomic.AddInt32(&orderVal, 1)
+			readOrder := atomic.AddInt32(&order, 1)
 
 			// Compress the data read
 			for _, b := range buf[:nbytes] {
 				// Get the code for the byte
 				code := codeTable[b]
-				vec := code.Vec()
-				
-				for i := 0; i < code.Size(); i++ {
-					// Write the bit to the compressed buffer
-					if vec.GetBit(i) {	
-						compressedBuffer.Push(1)
-					} else {
-						compressedBuffer.Push(0)
-					}
-				}
+				compressedBuffer.Append(code, 0)
 			}
-
-			// Write the compressed data to the channel and reset the compressed buffer
-			compressedDataChan <- compressedBlock{compressedBuffer.Copy(), int(readOrder)}
+		
+			// Copy the compressed buffer to the channel, then reset it
+			compressedChannels[readOrder] <- compressedBuffer.Copy()
 			compressedBuffer.Reset()
 		}
 	}
 
-	// Start the compression job for all of the workers
+	// Create empty channels that hold the compressed data
+	for i := 0; i < totalReadsNeeded; i++ {
+		compressedChannels = append(compressedChannels, make(chan common.BitStack))
+	}
+
+	// Start the workers
 	for i := 0; i < maxGoroutines; i++ {
 		go compressJob()
 	}
 
-	// Handle goroutine channels
+	// Merge compressed data from the workers into a single buffer
+	mergedOutBuffer := common.NewBitStack(common.MAX_BIT_BUFFER_SIZE)
 	select {
-	case err := <- errChan:
+	case err := <-errorChannel:
 		return nil, err
 	default:
-		// Buffer used for merging compressed data blocks together
-		mergedOutBuffer := common.NewBitStack(common.MAX_BIT_BUFFER_SIZE)
-		for i := 0; i < totalReadsNeeded; i++ {
-			currBlock := blockStore[i]
+		for _, channel := range compressedChannels {
+			// Read the data from the channel
+			data := <-channel
 
-			// Wait for the correct block to be read if blockStore[i] is nil
-			if currBlock == nil {
-				// Wait for a block to be sent down the channel
-				block := <- compressedDataChan
-				// Incorrect block order, simply reiterate this loop until we recieve the correct block
-				if i != block.order {
-					i--
-					// Make sure to temporarily cache this data for when it comes time to assign it to currBlock
-					blockStore[block.order] = block.data
-					continue
-				}
-				// Correct block order, assign it to currBlock
-				currBlock = block.data
-			}
-
-			// Merge the current block with the merged buffer
-			currBlockVec := currBlock.Vec()
-			for j := 0; j < currBlock.Size(); j++ {
-				// Push the bits from the current block to the merged buffer 1 by 1
-				if currBlockVec.GetBit(j) {
-					mergedOutBuffer.Push(1)
-				} else {
-					mergedOutBuffer.Push(0)
-				}
-				
-				// Write the data in the mergedOutBuffer to the output file when it fills up
-				if mergedOutBuffer.Size() == common.MAX_BIT_BUFFER_SIZE {
-					// Write the buffer to the output file
-					_, err := outfile.Write(mergedOutBuffer.Vec().RawData())
-					if err != nil {	
-						return nil, err
-					}
+			// Merge data from the compressed channels
+			_, idx := mergedOutBuffer.Append(data, 0)
+			for idx < data.Size() {
+				if mergedOutBuffer.Size() >= common.MAX_BIT_BUFFER_SIZE {
+					// Write the data to the output file
+					outfile.Write(mergedOutBuffer.Vec().RawData())
 					mergedOutBuffer.Reset()
 				}
+				_, idx = mergedOutBuffer.Append(data, idx)
 			}
-			
 		}
-
-		// Write the remaining bits from the merged buffer to the outfile
-		writeAmount := int(math.Ceil(float64(mergedOutBuffer.Size()) / 8))
-		_, err := outfile.Write(mergedOutBuffer.Vec().RawData()[:writeAmount])
-		if err != nil {
-			return nil, err
-		}
-		return outfile, nil
 	}
+
+	// Write the remaining bits from the merged buffer to the outfile
+	writeAmount := int(math.Ceil(float64(mergedOutBuffer.Size()) / 8))
+	_, err := outfile.Write(mergedOutBuffer.Vec().RawData()[:writeAmount])
+	if err != nil {
+		return nil, err
+	}
+	return outfile, nil
 }
 
 // writeFileHeader writes the compression header to the output file and returns the header struct
